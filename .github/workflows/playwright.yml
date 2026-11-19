@@ -18,21 +18,43 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      # ubuntu-latest sometimes fails mid-apt while fetching Playwright's font
-      # packages. Retry so a transient mirror error does not fail the job.
+      # Download the browser only. `install --with-deps` also apt-installs a font
+      # pack (fonts-unifont, fonts-wqy-zenhei, ...) and that fetch failed on
+      # ubuntu-latest. The tests do not need those fonts. Shared libraries are
+      # installed only if Chromium cannot start.
       - name: Install Playwright Chromium
         run: |
+          npx playwright install chromium
+          probe='const {chromium}=require("@playwright/test"); (async()=>{const b=await chromium.launch(); await b.close();})().catch((e)=>{console.error(e); process.exit(1);})'
+          if node -e "$probe"; then
+            exit 0
+          fi
+          echo "Chromium did not start; installing shared libraries (no font pack)"
           echo 'Acquire::Retries "5";' | sudo tee /etc/apt/apt.conf.d/80-retries >/dev/null
-          attempt=1
-          until npx playwright install --with-deps chromium; do
-            if [ "$attempt" -ge 3 ]; then
-              echo "playwright install failed after ${attempt} attempts"
-              exit 1
-            fi
-            echo "playwright install failed (attempt ${attempt}); retrying"
-            attempt=$((attempt + 1))
-            sleep 20
-          done
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            libasound2t64 \
+            libatk-bridge2.0-0t64 \
+            libatk1.0-0t64 \
+            libatspi2.0-0t64 \
+            libcairo2 \
+            libcups2t64 \
+            libdbus-1-3 \
+            libdrm2 \
+            libgbm1 \
+            libglib2.0-0t64 \
+            libnspr4 \
+            libnss3 \
+            libpango-1.0-0 \
+            libx11-6 \
+            libxcb1 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxext6 \
+            libxfixes3 \
+            libxkbcommon0 \
+            libxrandr2
+          node -e "$probe"
       - run: npm run typecheck
 
       - name: Start the demo app
@@ -73,21 +95,43 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      # ubuntu-latest sometimes fails mid-apt while fetching Playwright's font
-      # packages. Retry so a transient mirror error does not fail the job.
+      # Download the browser only. `install --with-deps` also apt-installs a font
+      # pack (fonts-unifont, fonts-wqy-zenhei, ...) and that fetch failed on
+      # ubuntu-latest. The tests do not need those fonts. Shared libraries are
+      # installed only if Chromium cannot start.
       - name: Install Playwright Chromium
         run: |
+          npx playwright install chromium
+          probe='const {chromium}=require("@playwright/test"); (async()=>{const b=await chromium.launch(); await b.close();})().catch((e)=>{console.error(e); process.exit(1);})'
+          if node -e "$probe"; then
+            exit 0
+          fi
+          echo "Chromium did not start; installing shared libraries (no font pack)"
           echo 'Acquire::Retries "5";' | sudo tee /etc/apt/apt.conf.d/80-retries >/dev/null
-          attempt=1
-          until npx playwright install --with-deps chromium; do
-            if [ "$attempt" -ge 3 ]; then
-              echo "playwright install failed after ${attempt} attempts"
-              exit 1
-            fi
-            echo "playwright install failed (attempt ${attempt}); retrying"
-            attempt=$((attempt + 1))
-            sleep 20
-          done
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            libasound2t64 \
+            libatk-bridge2.0-0t64 \
+            libatk1.0-0t64 \
+            libatspi2.0-0t64 \
+            libcairo2 \
+            libcups2t64 \
+            libdbus-1-3 \
+            libdrm2 \
+            libgbm1 \
+            libglib2.0-0t64 \
+            libnspr4 \
+            libnss3 \
+            libpango-1.0-0 \
+            libx11-6 \
+            libxcb1 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxext6 \
+            libxfixes3 \
+            libxkbcommon0 \
+            libxrandr2
+          node -e "$probe"
       - name: Run all tests against the fixed app
         run: npm run test:fixed
         env:
