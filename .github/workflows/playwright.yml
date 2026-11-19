@@ -1,0 +1,73 @@
+name: Playwright multi-account tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Suite vs. buggy app (defects must be detected)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run typecheck
+
+      - name: Start the demo app
+        run: |
+          node app/server.js > app.log 2>&1 &
+          npx --yes wait-on@8 --timeout 30000 http://localhost:3210/health
+
+      # Playwright exits 1 because the @bug tests fail on purpose; we keep going and let
+      # verify-results.mjs decide: all regular tests must pass AND every @bug test must fail.
+      - name: Run Playwright tests
+        run: npx playwright test
+        continue-on-error: true
+      - name: Verify results (no regressions, all planted defects detected)
+        run: node scripts/verify-results.mjs
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+      - name: Upload app log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-log
+          path: app.log
+
+  fixed:
+    name: Suite vs. fixed app (proves @bug tests are correct)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run all tests against the fixed app
+        run: npm run test:fixed
+        env:
+          FIX_PLANTED_BUGS: '1'
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-fixed-app
+          path: playwright-report/
+          retention-days: 14

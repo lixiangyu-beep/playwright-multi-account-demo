@@ -1,0 +1,42 @@
+{
+  "name": "playwright-multi-account-demo",
+  "version": "1.0.0",
+  "description": "Playwright + TypeScript demo: multi-account, role-based and IDOR testing of a multi-tenant app",
+  "author": "lixiangyu-beep",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lixiangyu-beep/playwright-multi-account-demo.git"
+  },
+  "scripts": {
+    "start": "node app/server.js",
+    "test": "node scripts/run.mjs",
+    "test:all": "playwright test",
+    "test:regression": "playwright test --grep-invert @bug",
+    "test:defects": "playwright test --grep @bug",
+    "typecheck": "tsc -p .",
+    "report": "playwright show-report",
+    "test:fixed": "node scripts/run.mjs --fixed"
+  },
+  "keywords": [
+    "playwright",
+    "typescript",
+    "qa",
+    "sdet",
+    "idor",
+    "rbac"
+  ],
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^4.22.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  }
+}
